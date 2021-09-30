@@ -64,6 +64,9 @@ stages:
               templateLocation: 'Linked artifact'
               csmFile: '$(Pipeline.Workspace)/templates/azuredeploy.json'
               csmParametersFile: '$(Pipeline.Workspace)/templates/azuredeploy.parameters.dev.json'
+              overrideParameters: '
+              -repo $(Build.Repository.Name)
+              '
               deploymentMode: 'Incremental'
           - task: AzureCLI@2
             displayName: 'Enable Static Website'
@@ -99,6 +102,9 @@ stages:
               templateLocation: 'Linked artifact'
               csmFile: '$(Pipeline.Workspace)/templates/azuredeploy.json'
               csmParametersFile: '$(Pipeline.Workspace)/templates/azuredeploy.parameters.test.json'
+              overrideParameters: '
+              -repo $(Build.Repository.Name)
+              '
               deploymentMode: 'Incremental'
           - task: AzureCLI@2
             displayName: 'Enable Static Website'
@@ -134,6 +140,9 @@ stages:
               templateLocation: 'Linked artifact'
               csmFile: '$(Pipeline.Workspace)/templates/azuredeploy.json'
               csmParametersFile: '$(Pipeline.Workspace)/templates/azuredeploy.parameters.prod.json'
+              overrideParameters: '
+              -repo $(Build.Repository.Name)
+              '
               deploymentMode: 'Incremental'
           - task: AzureCLI@2
             displayName: 'Enable Static Website'

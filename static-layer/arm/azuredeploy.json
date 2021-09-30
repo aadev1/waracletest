@@ -39,6 +39,12 @@
             "metadata": {
                 "description": "CDN Profile SKU"
             }
+        },
+        "repo": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of repo provided by pipeline"
+            }
         }
     },
     "variables": {
@@ -60,9 +66,9 @@
             "kind": "StorageV2",
             "properties": {},
             "tags": {
-                "Stage": "Dev",
-                "Organisation": "Waracle",
-                "Repo": "ManualRepo"
+                "Organistation": "Waracle",
+                "stage": "[parameters('environmentname')]",
+                "repo": "[parameters('repo')]"
             }
         },
         {
@@ -72,9 +78,9 @@
             "apiVersion": "2020-09-01",
             "properties": {},
             "tags": {
-                "Stage": "Dev",
-                "Organisation": "Waracle",
-                "Repo": "ManualRepo"
+                "Organistation": "Waracle",
+                "stage": "[parameters('environmentname')]",
+                "repo": "[parameters('repo')]"
             },
             "sku": {
                 "name": "[parameters('cdnSku')]"
@@ -85,6 +91,11 @@
             "apiVersion": "2020-09-01",
             "name": "[concat(variables('cdnProfileName'), '/', variables('cdnEndpoint'))]",
             "location": "Global",
+            "tags": {
+                "Organistation": "Waracle",
+                "stage": "[parameters('environmentname')]",
+                "repo": "[parameters('repo')]"
+            },
             "dependsOn": [
                 "[resourceId('Microsoft.Cdn/profiles', variables('cdnProfileName'))]",
                 "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
@@ -154,11 +165,5 @@
                 ]
             }
         }
-    ]/*,
-    "outputs": {
-        "output1": {
-            "type": "string",
-            "value": "[reference(variables('storageAccountName')).primaryEndpoints.blob]"
-        }
-    }*/
+    ]
 }

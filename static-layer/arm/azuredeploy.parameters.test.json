@@ -13,6 +13,9 @@
       },
       "cdnSku": {
           "value": "Standard_Microsoft"
+      },
+      "repo": {
+        "value": "manual"
       }
   }
 }
