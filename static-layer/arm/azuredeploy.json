@@ -42,11 +42,11 @@
         }
     },
     "variables": {
-        "storageAccountName": "[concat('stwrcltest', parameters('environmentname'))]",
-        "cdnProfileName": "[concat('cdn-wrcltest-', parameters('environmentname'))]",
+        "storageAccountName": "[concat('stwarcltest', parameters('environmentname'))]",
+        "cdnProfileName": "[concat('cdn-warcltest-', parameters('environmentname'))]",
         "epOriginHostName": "[concat(variables('storageAccountName'), '.z33.web.core.windows.net')]",
         "epOriginName": "[concat(variables('storageAccountName'), '-z33-web-core-windows-net')]",
-        "cdnEndpoint": "[concat('epwrcltest', parameters('environmentname'))]"
+        "cdnEndpoint": "[concat('epwarcltest', parameters('environmentname'))]"
     },
     "resources": [
         {
