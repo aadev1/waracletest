@@ -1,0 +1,155 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environmentname": {
+      "type": "string",
+      "allowedValues": [
+        "dev",
+        "test",
+        "prod"
+      ],
+      "metadata": {
+        "description": "Environment Name"
+      }
+    },
+    "repo": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of CI CD repository"
+      }
+    }
+  },
+  "variables": {
+    "serverfarmsname": "[concat('ASP-rgwrcltest', parameters('environmentname'))]",
+    "storageaccountname": "[concat('stwrclfunction', tolower(parameters('environmentname')))]",
+    "apifunctionname": "[concat('func-wrcltest-', tolower(parameters('environmentname')))]",
+    "appinsightsname": "[concat('ai-wrcltest-', tolower(parameters('environmentname')))]"
+  },
+  "resources": [
+    {
+      "apiVersion": "2018-11-01",
+      "name": "[variables('apifunctionname')]",
+      "type": "Microsoft.Web/sites",
+      "kind": "functionapp",
+      "location": "[resourceGroup().location]",
+      "identity": {
+        "type": "systemAssigned"
+      },
+      "tags": {
+        "organisation": "Waracle",
+        "stage": "[parameters('environmentname')]",
+        "repo": "[parameters('repo')]"
+      },
+      "dependsOn": [
+        "[concat('Microsoft.Web/serverfarms/', variables('serverfarmsname'))]",
+        "[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]"
+      ],
+      "properties": {
+        "name": "[variables('apifunctionname')]",
+        "siteConfig": {
+          "appSettings": [
+            {
+              "name": "FUNCTIONS_EXTENSION_VERSION",
+              "value": "~3"
+            },
+            {
+              "name": "FUNCTIONS_WORKER_RUNTIME",
+              "value": "powershell"
+            },
+            {
+              "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+              "value": "[reference(concat('microsoft.insights/components/', variables('appinsightsname')), '2015-05-01').InstrumentationKey]"
+            },
+            {
+              "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+              "value": "[reference(concat('microsoft.insights/components/', variables('appinsightsname')), '2015-05-01').ConnectionString]"
+            },
+            {
+              "name": "AzureWebJobsStorage",
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=',variables('storageAccountName'),';AccountKey=',listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2019-06-01').keys[0].value,';EndpointSuffix=','core.windows.net')]"
+            },
+            {
+              "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=',variables('storageAccountName'),';AccountKey=',listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2019-06-01').keys[0].value,';EndpointSuffix=','core.windows.net')]"
+            },
+            {
+              "name": "WEBSITE_CONTENTSHARE",
+              "value": "[concat(toLower(variables('apifunctionname')), 'a4f7')]"
+            }
+          ],
+          "use32BitWorkerProcess": true,
+          "powerShellVersion": "~7"
+        },
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms/', variables('serverfarmsname'))]",
+        "clientAffinityEnabled": true
+      }
+    },
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2021-01-15",
+      "name": "[variables('serverfarmsname')]",
+      "location": "UK South",
+      "tags": {
+        "Organisation": "Waracle",
+        "stage": "[parameters('environmentname')]",
+        "repo": "[parameters('repo')]"
+      },
+      "sku": {
+        "name": "Y1",
+        "tier": "Dynamic",
+        "size": "Y1",
+        "family": "Y",
+        "capacity": 0
+      },
+      "kind": "functionapp",
+      "properties": {
+        "perSiteScaling": false,
+        "elasticScaleEnabled": false,
+        "maximumElasticWorkerCount": 1,
+        "isSpot": false,
+        "reserved": false,
+        "isXenon": false,
+        "hyperV": false,
+        "targetWorkerCount": 0,
+        "targetWorkerSizeId": 0
+      }
+    },
+    {
+      "apiVersion": "2019-06-01",
+      "type": "Microsoft.Storage/storageAccounts",
+      "name": "[variables('storageAccountName')]",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "Organistation": "Waracle",
+        "stage": "[parameters('environmentname')]",
+        "repo": "[parameters('repo')]"
+      },
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "properties": {
+        "supportsHttpsTrafficOnly": true
+      }
+    },
+    {
+      "apiVersion": "2015-05-01",
+      "name": "[variables('appinsightsname')]",
+      "type": "microsoft.insights/components",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "organisation": "Waracle",
+        "stage": "[parameters('environmentname')]",
+        "repo": "[parameters('repo')]"
+      },
+      "properties": {
+        "Application_Type": "web",
+        "Request_Source": "rest"
+      }
+    }
+  ]
+}
+
+// Function App
+// App Service Plan
+// Storage Account

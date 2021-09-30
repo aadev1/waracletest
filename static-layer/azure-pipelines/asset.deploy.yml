@@ -1,0 +1,162 @@
+
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+#
+# specific path build
+trigger:
+  branches:
+    include:
+    - master
+    - feature/*
+    - bug/*
+  paths:
+    include:
+    - static-layer/src
+    - static-layer/azure-pipelines/asset.deploy.yml
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+- stage: PublishArtefacts
+  displayName: Publish Artefacts
+  jobs:
+  - job:
+    displayName: Create ARM template artifact
+    steps:
+      - task: CopyFiles@2
+        inputs:
+          SourceFolder: 'static-layer/src'
+          Contents: '**'
+          TargetFolder: $(Build.ArtifactStagingDirectory)
+          CleanTargetFolder: true
+          OverWrite: true
+      - task: PublishPipelineArtifact@1
+        inputs:
+          targetPath: $(Build.ArtifactStagingDirectory)
+          artifact: 'source'
+          publishLocation: 'pipeline'
+
+- stage: CI
+  displayName: Deploying to CI environment
+  dependsOn: PublishArtefacts
+  jobs:
+  - deployment: 'DeployAppToCI'
+    displayName: Deploying Application Resources to CI environment
+    environment: CI
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: source
+          - task: AzureCLI@2
+            displayName: 'Upload Static Content'
+            inputs:
+              azureSubscription: 'kk3157b'
+              scriptType: pscore
+              scriptLocation: inlineScript
+              inlineScript: |
+                $accountKey = az storage account keys list --account-name stwrcltestdev --resource-group kk3157b --query [0].value -o tsv
+                az storage blob upload --account-name stwrcltestdev --container-name '$web' --name 'index.html' --file '$(Pipeline.Workspace)/source/index.html' --account-key $accountKey --debug --verbose
+          - task: AzurePowerShell@5
+            displayName: "Test CDN Endpoint"
+            inputs:
+              azureSubscription: kk3157b
+              ErrorActionPreference: 'Stop'
+              FailOnStandardError: true
+              ScriptType: 'inlineScript'
+              azurePowerShellVersion: 'LatestVersion'
+              inline: |
+                $statuscode = Invoke-WebRequest -Uri https://epwrcltestdev.azureedge.net | Select-Object -Expand StatusCode
+                if ($statuscode -eq 200)
+                {
+                  Write-Information "SUCCESS: CDN test retured a status $statuscode"
+                } else {
+                  Write-Information "FAILED: CDN test retured a status $statuscode"
+                  exit(1)
+                }
+
+- stage: Test
+  displayName: Deploying to Test environment
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+  dependsOn: CI
+  jobs:
+  - deployment: 'DeployAppToTest'
+    displayName: Deploying Application Resources to Test environment
+    environment: Test
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: source
+          - task: AzureCLI@2
+            displayName: 'Upload static content'
+            inputs:
+              azureSubscription: 'kk3157b'
+              scriptType: pscore
+              scriptLocation: inlineScript
+              inlineScript: |
+                $accountKey = az storage account keys list --account-name stwrcltesttest --resource-group kk3157b --query [0].value -o tsv
+                az storage blob upload --account-name stwrcltesttest --container-name '$web' --name 'index.html' --file '$(Pipeline.Workspace)/source/index.html' --account-key $accountKey --debug --verbose
+          - task: AzurePowerShell@5
+            displayName: "Test CDN Endpoint"
+            inputs:
+              azureSubscription: kk3157b
+              ErrorActionPreference: 'Stop'
+              FailOnStandardError: true
+              ScriptType: 'inlineScript'
+              azurePowerShellVersion: 'LatestVersion'
+              inline: |
+                $statuscode = Invoke-WebRequest -Uri https://epwrcltesttest.azureedge.net | Select-Object -Expand StatusCode
+                if ($statuscode -eq 200)
+                {
+                  Write-Information "SUCCESS: CDN test retured a status $statuscode"
+                } else {
+                  Write-Information "FAILED: CDN test retured a status $statuscode"
+                  exit(1)
+                }
+
+- stage: Prod
+  displayName: Deploying to Prod environment
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+  dependsOn: Test
+  jobs:
+  - deployment: 'DeployAppToProd'
+    displayName: Deploying Application Resources to Prod environment
+    environment: Prod
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: source
+          - task: AzureCLI@2
+            displayName: 'Upload static content'
+            inputs:
+              azureSubscription: 'kk3157b'
+              scriptType: pscore
+              scriptLocation: inlineScript
+              inlineScript: |
+                $accountKey = az storage account keys list --account-name stwrcltestprod --resource-group kk3157b --query [0].value -o tsv
+                az storage blob upload --account-name stwrcltestprod --container-name '$web' --name 'index.html' --file '$(Pipeline.Workspace)/source/index.html' --account-key $accountKey --debug --verbose
+          - task: AzurePowerShell@5
+            displayName: "Test CDN Endpoint"
+            inputs:
+              azureSubscription: kk3157b
+              ErrorActionPreference: 'Stop'
+              FailOnStandardError: true
+              ScriptType: 'inlineScript'
+              azurePowerShellVersion: 'LatestVersion'
+              inline: |
+                $statuscode = Invoke-WebRequest -Uri https://epwrcltestprod.azureedge.net | Select-Object -Expand StatusCode
+                if ($statuscode -eq 200)
+                {
+                  Write-Information "SUCCESS: CDN test retured a status $statuscode" -InformationAction Continue
+                } else {
+                  Write-Information "FAILED: CDN test retured a status $statuscode" -InformationAction Continue
+                  exit(1)
+                }

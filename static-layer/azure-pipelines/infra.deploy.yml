@@ -1,0 +1,145 @@
+
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+#
+# specific path build
+trigger:
+  branches:
+    include:
+    - master
+    - feature/*
+    - bug/*
+  paths:
+    include:
+    - static-layer/arm
+    - static-layer/azure-pipelines/infra.deploy.yml
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+- stage: PublishArtefacts
+  displayName: Publish Artefacts
+  jobs:
+  - job:
+    displayName: Create ARM template artifact
+    steps:
+      - task: CopyFiles@2
+        inputs:
+          SourceFolder: 'static-layer/arm'
+          Contents: '**'
+          TargetFolder: $(Build.ArtifactStagingDirectory)
+          CleanTargetFolder: true
+          OverWrite: true
+      - task: PublishPipelineArtifact@1
+        inputs:
+          targetPath: $(Build.ArtifactStagingDirectory)
+          artifact: 'templates'
+          publishLocation: 'pipeline'
+
+- stage: CI
+  displayName: Deploying to CI environment
+#  condition: and(succeeded(), ne(variables['Build.SourceBranch'], 'refs/heads/master'))
+  dependsOn: PublishArtefacts
+  jobs:
+  - deployment: 'DeployInfra'
+    displayName: Deploying Infrastructure Resources
+    environment: CI
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: templates
+          - task: AzureResourceManagerTemplateDeployment@3
+            inputs:
+              deploymentScope: 'Resource Group'
+              azureResourceManagerConnection: 'kk3157b'
+              subscriptionId: 'bfae8067-8a34-4a4d-9a6b-2388a07e7b25'
+              action: 'Create Or Update Resource Group'
+              resourceGroupName: 'kk3157b'
+              location: 'UK South'
+              templateLocation: 'Linked artifact'
+              csmFile: '$(Pipeline.Workspace)/templates/azuredeploy.json'
+              csmParametersFile: '$(Pipeline.Workspace)/templates/azuredeploy.parameters.dev.json'
+              deploymentMode: 'Incremental'
+          - task: AzureCLI@2
+            displayName: 'Enable Static Website'
+            inputs:
+              azureSubscription: 'kk3157b'
+              scriptType: pscore
+              scriptLocation: inlineScript
+              inlineScript: |
+                az storage blob service-properties update --account-name stwrcltestdev --static-website --404-document error.html --index-document index.html
+
+- stage: Test
+  displayName: Deploying to Test environment
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+  dependsOn: CI
+  jobs:
+  - deployment: 'DeployInfraToTest'
+    displayName: Deploying Infrastructure Resources to Test environment
+    environment: Test
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: templates
+          - task: AzureResourceManagerTemplateDeployment@3
+            inputs:
+              deploymentScope: 'Resource Group'
+              azureResourceManagerConnection: 'kk3157b'
+              subscriptionId: 'bfae8067-8a34-4a4d-9a6b-2388a07e7b25'
+              action: 'Create Or Update Resource Group'
+              resourceGroupName: 'kk3157b'
+              location: 'UK South'
+              templateLocation: 'Linked artifact'
+              csmFile: '$(Pipeline.Workspace)/templates/azuredeploy.json'
+              csmParametersFile: '$(Pipeline.Workspace)/templates/azuredeploy.parameters.test.json'
+              deploymentMode: 'Incremental'
+          - task: AzureCLI@2
+            displayName: 'Enable Static Website'
+            inputs:
+              azureSubscription: 'kk3157b'
+              scriptType: pscore
+              scriptLocation: inlineScript
+              inlineScript: |
+                az storage blob service-properties update --account-name stwrcltesttest --static-website --404-document error.html --index-document index.html
+
+- stage: Prod
+  displayName: Deploying to Prod environment
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+  dependsOn: Test
+  jobs:
+  - deployment: 'DeployInfraToProd'
+    displayName: Deploying Infrastructure Resources to Prod environment
+    environment: Prod
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: templates
+          - task: AzureResourceManagerTemplateDeployment@3
+            inputs:
+              deploymentScope: 'Resource Group'
+              azureResourceManagerConnection: 'kk3157b'
+              subscriptionId: 'bfae8067-8a34-4a4d-9a6b-2388a07e7b25'
+              action: 'Create Or Update Resource Group'
+              resourceGroupName: 'kk3157b'
+              location: 'UK South'
+              templateLocation: 'Linked artifact'
+              csmFile: '$(Pipeline.Workspace)/templates/azuredeploy.json'
+              csmParametersFile: '$(Pipeline.Workspace)/templates/azuredeploy.parameters.prod.json'
+              deploymentMode: 'Incremental'
+          - task: AzureCLI@2
+            displayName: 'Enable Static Website'
+            inputs:
+              azureSubscription: 'kk3157b'
+              scriptType: pscore
+              scriptLocation: inlineScript
+              inlineScript: |
+                az storage blob service-properties update --account-name stwrcltestprod --static-website --404-document error.html --index-document index.html

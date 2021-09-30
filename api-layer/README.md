@@ -1,0 +1,1 @@
+We recommend using the Azure Functions Core Tools to setup a new Function App: https://docs.microsoft.com/en-us/azure/azure-functions/functions-run-local

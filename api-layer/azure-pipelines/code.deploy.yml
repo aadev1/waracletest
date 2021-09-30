@@ -1,0 +1,160 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+#
+# specific path build
+trigger:
+  branches:
+    include:
+    - master
+    - feature/*
+    - bug/*
+  paths:
+    include:
+    - api-layer/src
+    - api-layer/azure-pipelines/code.deploy.yml
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+- stage: PublishArtefacts
+  displayName: Publish Artefacts
+  jobs:
+  - job:
+    displayName: Archive Function App Source
+    steps:
+      - task: ArchiveFiles@2
+        displayName: 'Archive Function App'
+        inputs:
+          rootFolderOrFile: api-layer/src
+          includeRootFolder: false
+          archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId)/ApiFunctionApp.zip'
+      - task: PublishPipelineArtifact@1
+        inputs:
+          targetPath: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId)/ApiFunctionApp.zip'
+          artifact: 'apifunction'
+          publishLocation: 'pipeline'
+
+- stage: CI
+  displayName: Deploying to CI environment
+  dependsOn: PublishArtefacts
+  jobs:
+  - deployment: 'DeployAppToCI'
+    displayName: Deploying Application Code to CI environment
+    environment: CI
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: apifunction
+          - task: AzureFunctionApp@1
+            displayName: 'Deploy API Function'
+            inputs:
+              azureSubscription: kk3157b
+              appType: functionApp
+              appName: func-wrcltest-dev
+              package: '$(Pipeline.Workspace)/apifunction/ApiFunctionApp.zip'
+              deploymentMethod: 'zipDeploy'
+          - task: AzurePowerShell@5
+            displayName: "Test API"
+            inputs:
+              azureSubscription: kk3157b
+              ErrorActionPreference: 'Stop'
+              FailOnStandardError: true
+              ScriptType: 'inlineScript'
+              azurePowerShellVersion: 'LatestVersion'
+              inline: |
+                $uri = "https://func-wrcltest-dev.azurewebsites.net/api/HttpTrigger1?code=" + ${env:DEVFUNCKEY}
+                $statuscode = Invoke-WebRequest -Uri $uri | Select-Object -Expand StatusCode
+                if ($statuscode -eq 200)
+                {
+                  Write-Host "SUCCESS: CDN test retured a status $statuscode"
+                } else {
+                  Write-Host  "##vso[task.LogIssue type=error;]FAILED: CDN test retured a status $statuscode"
+                  exit(1)
+                }
+
+- stage: TEST
+  displayName: Deploying to Test environment
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+  dependsOn: CI
+  jobs:
+  - deployment: 'DeployAppToTest'
+    displayName: Deploying Application Code to Test environment
+    environment: Test
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: apifunction
+          - task: AzureFunctionApp@1
+            displayName: 'Deploy API Function'
+            inputs:
+              azureSubscription: kk3157b
+              appType: functionApp
+              appName: func-wrcltest-test
+              package: '$(Pipeline.Workspace)/apifunction/ApiFunctionApp.zip'
+              deploymentMethod: 'zipDeploy'
+          - task: AzurePowerShell@5
+            displayName: "Test API"
+            inputs:
+              azureSubscription: kk3157b
+              ErrorActionPreference: 'Stop'
+              FailOnStandardError: true
+              ScriptType: 'inlineScript'
+              azurePowerShellVersion: 'LatestVersion'
+              inline: |
+                $uri = "https://func-wrcltest-test.azurewebsites.net/api/HttpTrigger1?code=" + ${env:TESTFUNCKEY}
+                $statuscode = Invoke-WebRequest -Uri $uri | Select-Object -Expand StatusCode
+                if ($statuscode -eq 200)
+                {
+                  Write-Host "SUCCESS: CDN test retured a status $statuscode"
+                } else {
+                  Write-Host  "##vso[task.LogIssue type=error;]FAILED: CDN test retured a status $statuscode"
+                  exit(1)
+                }
+
+- stage: PROD
+  displayName: Deploying to Prod environment
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+  dependsOn: TEST
+  jobs:
+  - deployment: 'DeployAppToProd'
+    displayName: Deploying Application Code to Test environment
+    environment: Prod
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: apifunction
+          - task: AzureFunctionApp@1
+            displayName: 'Deploy API Function'
+            inputs:
+              azureSubscription: kk3157b
+              appType: functionApp
+              appName: func-wrcltest-prod
+              package: '$(Pipeline.Workspace)/apifunction/ApiFunctionApp.zip'
+              deploymentMethod: 'zipDeploy'
+          - task: AzurePowerShell@5
+            displayName: "Test API"
+            inputs:
+              azureSubscription: kk3157b
+              ErrorActionPreference: 'Stop'
+              FailOnStandardError: true
+              ScriptType: 'inlineScript'
+              azurePowerShellVersion: 'LatestVersion'
+              inline: |
+                $uri = "https://func-wrcltest-prod.azurewebsites.net/api/HttpTrigger1?code=" + ${env:PRODFUNCKEY}
+                $statuscode = Invoke-WebRequest -Uri $uri | Select-Object -Expand StatusCode
+                if ($statuscode -eq 200)
+                {
+                  Write-Host "SUCCESS: CDN test retured a status $statuscode"
+                } else {
+                  Write-Host  "##vso[task.LogIssue type=error;]FAILED: CDN test retured a status $statuscode"
+                  exit(1)
+                }
