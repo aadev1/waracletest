@@ -72,7 +72,7 @@ To build and test the function app locally follow the instructions in the link b
 [Develop Azure Functions by using Visual Studio Code](https://docs.microsoft.com/en-us/azure/azure-functions/functions-develop-vs-code?tabs=powershell) 
 
 # Deploy
-The deployment process for the Static Website deployment is convered above in the Build and Test section.
+The deployment process for the Static Website deployment is covered above in the Build and Test section.
 
 To deploy the function app, change the variables below accordingly and deploy to your Dev subscription.
 
