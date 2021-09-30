@@ -56,7 +56,7 @@ stages:
             inputs:
               deploymentScope: 'Resource Group'
               azureResourceManagerConnection: 'kk3157b'
-              subscriptionId: '46240ff5-ae35-4ab6-8122-2ce0cf26a570'
+              subscriptionId: 'bfae8067-8a34-4a4d-9a6b-2388a07e7b25'
               action: 'Create Or Update Resource Group'
               resourceGroupName: 'kk3157b'
               location: 'UK South'
@@ -86,7 +86,7 @@ stages:
             inputs:
               deploymentScope: 'Resource Group'
               azureResourceManagerConnection: 'kk3157b'
-              subscriptionId: '46240ff5-ae35-4ab6-8122-2ce0cf26a570'
+              subscriptionId: 'bfae8067-8a34-4a4d-9a6b-2388a07e7b25'
               action: 'Create Or Update Resource Group'
               resourceGroupName: 'kk3157b'
               location: 'UK South'
@@ -116,7 +116,7 @@ stages:
             inputs:
               deploymentScope: 'Resource Group'
               azureResourceManagerConnection: 'kk3157b'
-              subscriptionId: '46240ff5-ae35-4ab6-8122-2ce0cf26a570'
+              subscriptionId: 'bfae8067-8a34-4a4d-9a6b-2388a07e7b25'
               action: 'Create Or Update Resource Group'
               resourceGroupName: 'kk3157b'
               location: 'UK South'
