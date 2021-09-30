@@ -73,9 +73,9 @@ stages:
                 $statuscode = Invoke-WebRequest -Uri https://epwrcltestdev.azureedge.net | Select-Object -Expand StatusCode
                 if ($statuscode -eq 200)
                 {
-                  Write-Information "SUCCESS: CDN test retured a status $statuscode"
+                  Write-Host "SUCCESS: CDN test retured a status $statuscode"
                 } else {
-                  Write-Information "FAILED: CDN test retured a status $statuscode"
+                  Write-Host  "##vso[task.LogIssue type=error;]FAILED: CDN test retured a status $statuscode"
                   exit(1)
                 }
 
@@ -114,9 +114,9 @@ stages:
                 $statuscode = Invoke-WebRequest -Uri https://epwrcltesttest.azureedge.net | Select-Object -Expand StatusCode
                 if ($statuscode -eq 200)
                 {
-                  Write-Information "SUCCESS: CDN test retured a status $statuscode"
+                  Write-Host "SUCCESS: CDN test retured a status $statuscode"
                 } else {
-                  Write-Information "FAILED: CDN test retured a status $statuscode"
+                  Write-Host  "##vso[task.LogIssue type=error;]FAILED: CDN test retured a status $statuscode"
                   exit(1)
                 }
 
@@ -155,8 +155,8 @@ stages:
                 $statuscode = Invoke-WebRequest -Uri https://epwrcltestprod.azureedge.net | Select-Object -Expand StatusCode
                 if ($statuscode -eq 200)
                 {
-                  Write-Information "SUCCESS: CDN test retured a status $statuscode" -InformationAction Continue
+                  Write-Host "SUCCESS: CDN test retured a status $statuscode"
                 } else {
-                  Write-Information "FAILED: CDN test retured a status $statuscode" -InformationAction Continue
+                  Write-Host  "##vso[task.LogIssue type=error;]FAILED: CDN test retured a status $statuscode"
                   exit(1)
                 }

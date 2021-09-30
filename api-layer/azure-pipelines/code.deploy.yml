@@ -67,8 +67,15 @@ stages:
               ScriptType: 'inlineScript'
               azurePowerShellVersion: 'LatestVersion'
               inline: |
-                $uri = "https://func-wrcltest-dev.azurewebsites.net/api/HttpTrigger1?code=" + ${env:DEVFUNCKEY}
-                $statuscode = Invoke-WebRequest -Uri $uri | Select-Object -Expand StatusCode
+                $FunctionAppName = "func-wrcltest-dev"
+                $GroupName = "kk3157b"
+                $TriggerName = "HttpTrigger1"
+                $FunctionApp = Get-AzWebApp -ResourceGroupName $GroupName -Name $FunctionAppName
+                $Id = $FunctionApp.Id
+                $DefaultHostName = $FunctionApp.DefaultHostName
+                $FunctionKey = (Invoke-AzResourceAction -ResourceId "$Id/functions/$TriggerName" -Action listkeys -Force).default
+                $FunctionURL = "https://" + $DefaultHostName + "/api/" + $TriggerName + "?code=" + $FunctionKey
+                $statuscode = Invoke-WebRequest -Uri $FunctionURL | Select-Object -Expand StatusCode
                 if ($statuscode -eq 200)
                 {
                   Write-Host "SUCCESS: CDN test retured a status $statuscode"
@@ -108,8 +115,15 @@ stages:
               ScriptType: 'inlineScript'
               azurePowerShellVersion: 'LatestVersion'
               inline: |
-                $uri = "https://func-wrcltest-test.azurewebsites.net/api/HttpTrigger1?code=" + ${env:TESTFUNCKEY}
-                $statuscode = Invoke-WebRequest -Uri $uri | Select-Object -Expand StatusCode
+                $FunctionAppName = "func-wrcltest-test"
+                $GroupName = "kk3157b"
+                $TriggerName = "HttpTrigger1"
+                $FunctionApp = Get-AzWebApp -ResourceGroupName $GroupName -Name $FunctionAppName
+                $Id = $FunctionApp.Id
+                $DefaultHostName = $FunctionApp.DefaultHostName
+                $FunctionKey = (Invoke-AzResourceAction -ResourceId "$Id/functions/$TriggerName" -Action listkeys -Force).default
+                $FunctionURL = "https://" + $DefaultHostName + "/api/" + $TriggerName + "?code=" + $FunctionKey
+                $statuscode = Invoke-WebRequest -Uri $FunctionURL | Select-Object -Expand StatusCode
                 if ($statuscode -eq 200)
                 {
                   Write-Host "SUCCESS: CDN test retured a status $statuscode"
@@ -149,8 +163,15 @@ stages:
               ScriptType: 'inlineScript'
               azurePowerShellVersion: 'LatestVersion'
               inline: |
-                $uri = "https://func-wrcltest-prod.azurewebsites.net/api/HttpTrigger1?code=" + ${env:PRODFUNCKEY}
-                $statuscode = Invoke-WebRequest -Uri $uri | Select-Object -Expand StatusCode
+                $FunctionAppName = "func-wrcltest-prod"
+                $GroupName = "kk3157b"
+                $TriggerName = "HttpTrigger1"
+                $FunctionApp = Get-AzWebApp -ResourceGroupName $GroupName -Name $FunctionAppName
+                $Id = $FunctionApp.Id
+                $DefaultHostName = $FunctionApp.DefaultHostName
+                $FunctionKey = (Invoke-AzResourceAction -ResourceId "$Id/functions/$TriggerName" -Action listkeys -Force).default
+                $FunctionURL = "https://" + $DefaultHostName + "/api/" + $TriggerName + "?code=" + $FunctionKey
+                $statuscode = Invoke-WebRequest -Uri $FunctionURL | Select-Object -Expand StatusCode
                 if ($statuscode -eq 200)
                 {
                   Write-Host "SUCCESS: CDN test retured a status $statuscode"
